@@ -167,30 +167,6 @@
       font-size: 10px;
     }
 
-    .chips {
-      margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .chip {
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 11px;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      cursor: pointer;
-      color: #374151;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .chip span {
-      font-size: 13px;
-    }
-
     .chat-card {
       border-radius: 18px;
       border: 1px solid #e5e7eb;
@@ -230,16 +206,21 @@
     }
 
     .avatar {
-      width: 26px;
-      height: 26px;
-      border-radius: 999px;
-      background: #111827;
+      width: 40px;
+      height: 40px;
+      margin-right: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      color: #fbbf24;
       flex-shrink: 0;
+    }
+
+    .avatar img {
+      width: 36px;
+      height: 36px;
+      border-radius: 9999px;
+      object-fit: cover;
+      display: block;
     }
 
     .bubble {
@@ -290,6 +271,11 @@
       box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.15);
     }
 
+    /* プレースホルダーを少し薄めのグレーに */
+    textarea::placeholder {
+      color: #d1d5db;
+    }
+
     button {
       font-family: inherit;
     }
@@ -319,23 +305,6 @@
       color: #9ca3af;
       text-align: left;
     }
-    .avatar {
-  width: 40px;
-  height: 40px;
-  margin-right: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar img {
-  width: 36px;
-  height: 36px;
-  border-radius: 9999px;
-  object-fit: cover;
-  display: block;
-}
-
   </style>
 </head>
 <body>
@@ -359,7 +328,7 @@
       </header>
 
       <div class="layout">
-        <!-- 左側：説明 & チップ -->
+        <!-- 左側：説明 -->
         <div>
           <div class="tabs">
             <button class="tab-btn active">
@@ -392,29 +361,12 @@
               <code>沼津店の駐車場は？</code><br />
               <code>清掃頻度を教えて</code>
             </div>
-
-            <div class="chips">
-              <button class="chip" data-preset="沼津店の住所は？">
-                <span>📍</span>沼津店の住所
-              </button>
-              <button class="chip" data-preset="沼津店の駐車場は？">
-                <span>🚗</span>沼津店の駐車場
-              </button>
-              <button class="chip" data-preset="清掃頻度を教えて">
-                <span>🧹</span>清掃頻度
-              </button>
-              <button class="chip" data-preset="リモートロックが開かない時は？">
-                <span>🔐</span>ロックが開かない時
-              </button>
-            </div>
           </div>
         </div>
 
         <!-- 右側：チャット -->
         <div class="chat-card">
-          <div id="chat-log" class="chat-log">
-            <!-- JSでメッセージを追加します -->
-          </div>
+          <div id="chat-log" class="chat-log"></div>
 
           <form id="chat-form" class="chat-input-row">
             <textarea
@@ -437,27 +389,25 @@
   </div>
 
   <script>
-    // 🔗 Cloudflare Workers のURL（自分のものに合わせてね）
+    // 🔗 Cloudflare Workers のURL
     const WORKER_ENDPOINT = "https://aged-mountain-a919.mabekento.workers.dev";
 
-    const chatLog = document.getElementById("chat-log");
-    const form = document.getElementById("chat-form");
-    const input = document.getElementById("user-input");
-    const sendBtn = document.getElementById("send-btn");
+    const chatLog  = document.getElementById("chat-log");
+    const form     = document.getElementById("chat-form");
+    const input    = document.getElementById("user-input");
+    const sendBtn  = document.getElementById("send-btn");
 
     function addBubble(text, role) {
       const row = document.createElement("div");
       row.className = "message-row " + role;
 
-     if (role === "bot") {
-  const icon = document.createElement("div");
-  icon.className = "avatar";
-  icon.innerHTML = `
-    <img src="kuma.png" alt="ONESELFくま" />
-  `;
-  row.appendChild(icon);
-}
-
+      // bot のときだけクマ画像
+      if (role === "bot") {
+        const icon = document.createElement("div");
+        icon.className = "avatar";
+        icon.innerHTML = '<img src="kuma.png" alt="ONESELFくま" />';
+        row.appendChild(icon);
+      }
 
       const bubble = document.createElement("div");
       bubble.className = "bubble";
@@ -512,14 +462,6 @@
       } finally {
         sendBtn.disabled = false;
       }
-    });
-
-    // チップをクリックしたらそのまま質問を投げる
-    document.querySelectorAll("[data-preset]").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        input.value = chip.dataset.preset || "";
-        form.dispatchEvent(new Event("submit"));
-      });
     });
   </script>
 </body>

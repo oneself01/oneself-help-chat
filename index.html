@@ -3,86 +3,612 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ONESELF ヘルプAI</title>
+  <title>ONESELF 社内ヘルプAI</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background:#f6f7f9; }
-    header { padding: 14px 16px; background: #111; color: #fff; font-weight: 700; }
-    main { max-width: 760px; margin: 0 auto; padding: 12px; }
-    .box { background:#fff; border-radius: 12px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-    #log { height: 60vh; overflow:auto; padding: 8px; border: 1px solid #e6e6e6; border-radius: 10px; }
-    .msg { margin: 10px 0; line-height: 1.5; }
-    .me { font-weight: 700; }
-    .ai { font-weight: 700; }
-    form { display:flex; gap: 8px; margin-top: 10px; }
-    input { flex:1; padding: 12px; border-radius: 10px; border: 1px solid #ddd; }
-    button { padding: 12px 14px; border: 0; border-radius: 10px; background:#111; color:#fff; font-weight:700; cursor:pointer; }
-    .note { color:#666; font-size: 12px; margin-top: 10px; }
+    :root {
+      --bg: #050816;
+      --card-bg: rgba(15, 23, 42, 0.95);
+      --accent: #22c55e;
+      --accent-soft: rgba(34, 197, 94, 0.18);
+      --border: rgba(148, 163, 184, 0.25);
+      --text-main: #e2e8f0;
+      --text-sub: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 0% 0%, #22c55e22 0, transparent 55%),
+        radial-gradient(circle at 100% 100%, #0ea5e922 0, transparent 55%),
+        #020617;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    main {
+      width: 100%;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .shell {
+      border-radius: 22px;
+      background: linear-gradient(135deg, #1e293b, #020617);
+      padding: 1px;
+      box-shadow:
+        0 20px 45px rgba(15, 23, 42, 0.65),
+        0 0 0 1px rgba(15, 23, 42, 0.7);
+    }
+
+    .app {
+      border-radius: 21px;
+      background: radial-gradient(circle at top left, #0f172a, #020617 65%);
+      display: flex;
+      flex-direction: column;
+      min-height: min(80vh, 720px);
+      max-height: 90vh;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      backdrop-filter: blur(14px);
+      background: linear-gradient(
+        to right,
+        rgba(15, 23, 42, 0.9),
+        rgba(15, 23, 42, 0.7)
+      );
+    }
+
+    .title-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 20% 20%, #bbf7d0, #22c55e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #022c22;
+      font-weight: 800;
+      box-shadow:
+        0 0 0 2px rgba(15, 23, 42, 0.9),
+        0 0 24px rgba(34, 197, 94, 0.6);
+    }
+
+    .title-text-main {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .title-text-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #4ade80;
+      box-shadow: 0 0 8px #22c55e;
+    }
+
+    .body {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 768px) {
+      .body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .side {
+        display: none;
+      }
+    }
+
+    .chat {
+      padding: 12px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid rgba(15, 23, 42, 0.9);
+    }
+
+    #log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 4px 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+    }
+
+    #log::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #log::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.6);
+      border-radius: 999px;
+    }
+
+    .msg-row {
+      display: flex;
+      margin: 8px 0;
+      gap: 8px;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(30, 64, 175, 0.4);
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .bubble {
+      max-width: 80%;
+      border-radius: 16px;
+      padding: 9px 11px;
+      font-size: 13px;
+      line-height: 1.6;
+      border: 1px solid transparent;
+      position: relative;
+    }
+
+    .bubble.user {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #022c22;
+      border-color: rgba(34, 197, 94, 0.8);
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble.ai {
+      background: rgba(15, 23, 42, 0.95);
+      border-color: var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .name {
+      font-size: 11px;
+      margin-bottom: 3px;
+      opacity: 0.8;
+    }
+
+    .name.user {
+      text-align: right;
+    }
+
+    .name.ai {
+      color: var(--text-sub);
+    }
+
+    .input-wrap {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(15, 23, 42, 0.9);
+    }
+
+    form {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input {
+      flex: 1;
+      padding: 11px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease,
+        background 0.15s ease;
+    }
+
+    input::placeholder {
+      color: #64748b;
+    }
+
+    input:focus {
+      border-color: rgba(34, 197, 94, 0.9);
+      box-shadow:
+        0 0 0 1px rgba(34, 197, 94, 0.6),
+        0 0 20px rgba(34, 197, 94, 0.25);
+      background: rgba(15, 23, 42, 1);
+    }
+
+    button {
+      padding: 10px 15px;
+      border-radius: 999px;
+      border: 0;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #022c22;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow:
+        0 12px 30px rgba(34, 197, 94, 0.45),
+        0 0 0 1px rgba(15, 23, 42, 0.8);
+      white-space: nowrap;
+      transition: transform 0.08s ease, box-shadow 0.08s ease,
+        filter 0.08s ease;
+    }
+
+    button span.icon {
+      font-size: 15px;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow:
+        0 6px 14px rgba(34, 197, 94, 0.4),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      filter: brightness(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.9),
+        0 4px 10px rgba(15, 23, 42, 0.8);
+    }
+
+    .note {
+      color: var(--text-sub);
+      font-size: 11px;
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+
+    .note strong {
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+
+    .side {
+      padding: 14px 14px 10px;
+      border-left: 1px solid rgba(15, 23, 42, 0.9);
+      background: radial-gradient(circle at top, #0b1120, #020617 60%);
+    }
+
+    .side-card {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 12px 12px 10px;
+      background: linear-gradient(145deg, #020617, #020617, #020617);
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.75),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .side-card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0 0, rgba(34, 197, 94, 0.14), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.18), transparent 60%);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .side-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .side-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .pill {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      color: var(--text-sub);
+    }
+
+    .side-desc {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .side-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .side-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 6px 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(30, 64, 175, 0.35);
+      color: #cbd5f5;
+    }
+
+    .side-list li span.dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      margin-top: 4px;
+      background: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
+      flex-shrink: 0;
+    }
+
+    .side-list li span.text {
+      flex: 1;
+      line-height: 1.5;
+    }
+
+    .side-footer {
+      font-size: 10px;
+      color: var(--text-sub);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
-  <header>ONESELF ヘルプAI</header>
   <main>
-    <div class="box">
-      <div id="log"></div>
+    <div class="shell">
+      <div class="app">
+        <header>
+          <div class="title-block">
+            <div class="logo-dot">O</div>
+            <div>
+              <div class="title-text-main">ONESELF 社内ヘルプAI</div>
+              <div class="title-text-sub">店舗運営・お客様対応のためのナレッジ検索ツール</div>
+            </div>
+          </div>
+          <div class="badge">
+            <span class="badge-dot"></span>
+            Online / 社内専用
+          </div>
+        </header>
 
-      <form id="f">
-        <input id="q" placeholder="例：沼津店の駐車場は？ / 遅刻しそうな場合は？" autocomplete="off" />
-        <button id="send" type="submit">送信</button>
-      </form>
+        <div class="body">
+          <section class="chat">
+            <div id="log"></div>
 
-      <div class="note">
-        ※個人情報や予約番号は入力しないでください。解決しない場合は公式LINEの「お問い合わせ」へ。
+            <div class="input-wrap">
+              <form id="f">
+                <input
+                  id="q"
+                  placeholder="例：沼津店の駐車場は？／遅刻連絡が来たときの対応は？／清掃ルールを教えて"
+                  autocomplete="off"
+                />
+                <button id="send" type="submit">
+                  <span class="icon">⮞</span>
+                  送信
+                </button>
+              </form>
+              <div class="note">
+                <strong>注意</strong>：顧客名・電話番号・予約番号などの個人情報は入力しないでください。<br />
+                回答に迷う場合や緊急時は、必ず上長またはSlackで確認してください。
+              </div>
+            </div>
+          </section>
+
+          <aside class="side">
+            <div class="side-card">
+              <div class="side-inner">
+                <div class="side-title">
+                  こんなことを聞けます
+                  <span class="pill">新人トレーニングにも</span>
+                </div>
+                <p class="side-desc">
+                  ONESELFの社内ルール・マニュアル・店舗情報をもとに、業務でよく出る質問に素早く答えるためのAIです。
+                </p>
+                <ul class="side-list">
+                  <li>
+                    <span class="dot"></span>
+                    <span class="text">「◯◯店の住所／駐車場案内を教えて」</span>
+                  </li>
+                  <li>
+                    <span class="dot"></span>
+                    <span class="text">「お客様が10分遅刻しそうなときの対応ルールは？」</span>
+                  </li>
+                  <li>
+                    <span class="dot"></span>
+                    <span class="text">「予約の変更・キャンセルのLINE文面を出して」</span>
+                  </li>
+                  <li>
+                    <span class="dot"></span>
+                    <span class="text">「清掃頻度や備品補充の社内ルールを確認したい」</span>
+                  </li>
+                </ul>
+                <div class="side-footer">
+                  ※ 本ツールは社内マニュアルの内容に基づいて回答します。<br />
+                  ※ 不明点があれば「分からない」と表示し、無理に推測しないよう設計してください（OpenAI側のプロンプト設定で調整）。
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   </main>
 
-<script>
-  // 後で Cloudflare Workers のURLに差し替えます
-  const API_URL = "https://YOUR-WORKER.your-subdomain.workers.dev/chat";
+  <script>
+    // TODO: あとで Cloudflare Workers などのエンドポイントURLに変更する
+    const API_URL = "https://YOUR-WORKER.your-subdomain.workers.dev/chat";
 
-  const log = document.getElementById("log");
-  const f = document.getElementById("f");
-  const q = document.getElementById("q");
-  const send = document.getElementById("send");
+    const log = document.getElementById("log");
+    const f = document.getElementById("f");
+    const q = document.getElementById("q");
+    const send = document.getElementById("send");
 
-  function add(role, text) {
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.innerHTML = `<span class="${role === 'user' ? 'me' : 'ai'}">${role === 'user' ? 'あなた' : 'AI'}：</span> ${escapeHtml(text).replace(/\n/g,"<br>")}`;
-    log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
-  }
-
-  function escapeHtml(s){
-    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  f.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = q.value.trim();
-    if (!text) return;
-    q.value = "";
-    add("user", text);
-
-    send.disabled = true;
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: text })
-      });
-
-      const data = await res.json().catch(()=> ({}));
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      add("assistant", data.answer || "すみません、回答を生成できませんでした。");
-    } catch (err) {
-      add("assistant", "エラーが発生しました。時間を置いて再度お試しください。");
-    } finally {
-      send.disabled = false;
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+      );
     }
-  });
 
-  add("assistant", "こんにちは。質問を入力してください。");
-</script>
+    function add(role, text) {
+      const row = document.createElement("div");
+      row.className = "msg-row " + (role === "user" ? "user" : "ai");
+
+      // avatar
+      if (role === "assistant") {
+        const avatar = document.createElement("div");
+        avatar.className = "avatar";
+        avatar.innerHTML =
+          '<img src="bear-icon.png" alt="AI" />'; // ← ここをアップした画像名に合わせて変更（例：bear.png）
+        row.appendChild(avatar);
+      }
+
+      const wrap = document.createElement("div");
+
+      const name = document.createElement("div");
+      name.className = "name " + (role === "user" ? "user" : "ai");
+      name.textContent = role === "user" ? "あなた" : "ヘルプAI";
+      wrap.appendChild(name);
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (role === "user" ? "user" : "ai");
+      bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
+      wrap.appendChild(bubble);
+
+      row.appendChild(wrap);
+
+      // ユーザーは右側に寄せる（avatarは右側に不要）
+      if (role === "user") {
+        row.insertBefore(wrap, row.firstChild);
+      }
+
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = q.value.trim();
+      if (!text) return;
+
+      q.value = "";
+      add("user", text);
+
+      send.disabled = true;
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+        add("assistant", data.answer || "すみません、回答を生成できませんでした。");
+      } catch (err) {
+        console.error(err);
+        add(
+          "assistant",
+          "エラーが発生しました。時間をおいて再度お試しください。\n\n（開発メモ：API_URLが設定されているか、Workersがデプロイされているかを確認してください）"
+        );
+      } finally {
+        send.disabled = false;
+      }
+    });
+
+    // 最初の案内メッセージ（社内向け）
+    add(
+      "assistant",
+      [
+        "こんにちは。ONESELF社内ヘルプAIです。",
+        "",
+        "・店舗ルール",
+        "・駐車場や設備の情報",
+        "・お客様対応の判断",
+        "・トラブル時の一次対応",
+        "などを素早く確認するためのツールです。",
+        "",
+        "例：",
+        "「沼津店の駐車場案内を教えて」",
+        "「お客様が10分遅刻しそうな場合の対応ルールは？」",
+        "「◯◯店の清掃頻度と担当を確認したい」",
+      ].join("\n")
+    );
+  </script>
 </body>
 </html>

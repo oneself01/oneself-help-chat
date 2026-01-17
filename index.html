@@ -1,75 +1,506 @@
-<script>
-  // 🔗 Cloudflare Workers のURL（自分のものに合わせてね）
-  const WORKER_ENDPOINT = "https://aged-mountain-a919.mabekento.workers.dev";
-
-  const chatLog  = document.getElementById("chat-log");
-  const form     = document.getElementById("chat-form");
-  const input    = document.getElementById("user-input");
-  const sendBtn  = document.getElementById("send-btn");
-
-  // 吹き出しを追加する関数
-  function addBubble(text, role) {
-    const row   = document.createElement("div");
-    row.className = "message-row " + role;
-
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    bubble.textContent = text;
-
-    // 回答側だけクマアイコンを付ける例
-    if (role === "bot") {
-      const icon = document.createElement("div");
-      icon.className = "avatar";
-      icon.innerHTML = "🐻"; // ここを<img>にしてクマ画像でもOK
-      row.appendChild(icon);
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ONESELF 社内ヘルプAI</title>
+  <style>
+    * {
+      box-sizing: border-box;
     }
 
-    row.appendChild(bubble);
-    chatLog.appendChild(row);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
-
-  // 最初の案内メッセージが欲しければここに書く
-  // addBubble("社内業務について自由に質問してください。", "bot");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-
-    // 自分の吹き出し
-    addBubble(text, "user");
-    input.value = "";
-    input.focus();
-
-    // 「考え中…」吹き出し
-    const thinkingRow = document.createElement("div");
-    thinkingRow.className = "message-row bot";
-    const thinkingBubble = document.createElement("div");
-    thinkingBubble.className = "bubble thinking";
-    thinkingBubble.textContent = "考え中…";
-    thinkingRow.appendChild(thinkingBubble);
-    chatLog.appendChild(thinkingRow);
-    chatLog.scrollTop = chatLog.scrollHeight;
-
-    sendBtn.disabled = true;
-
-    try {
-      const res = await fetch(
-        `${WORKER_ENDPOINT}?q=${encodeURIComponent(text)}`
-      );
-
-      const answerText = await res.text();
-
-      // 考え中を消して、本回答を追加
-      thinkingRow.remove();
-      addBubble(answerText, "bot");
-    } catch (err) {
-      console.error(err);
-      thinkingRow.remove();
-      addBubble("エラーが発生しました。時間をおいて再度お試しください。", "bot");
-    } finally {
-      sendBtn.disabled = false;
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #f7f3ff 0, #f3f6ff 40%, #ffffff 100%);
+      color: #111827;
     }
-  });
-</script>
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 960px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+      padding: 24px 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: #ffdd66;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4f46e5;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .header-right span.label {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .tab-btn {
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #4b5563;
+    }
+
+    .tab-btn.active {
+      background: #111827;
+      color: #f9fafb;
+      border-color: #111827;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.8fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 840px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .hint-box {
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      padding: 12px 14px;
+      font-size: 12px;
+      background: #f9fafb;
+      line-height: 1.6;
+    }
+
+    .hint-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hint-list {
+      margin: 4px 0 0;
+      padding-left: 18px;
+    }
+
+    .hint-list li {
+      margin: 2px 0;
+    }
+
+    .examples {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .examples code {
+      background: #111827;
+      color: #f9fafb;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+    }
+
+    .chips {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      cursor: pointer;
+      color: #374151;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip span {
+      font-size: 13px;
+    }
+
+    .chat-card {
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #f9fafb;
+    }
+
+    .chat-log {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 12px;
+      height: 340px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .message-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      max-width: 88%;
+    }
+
+    .message-row.user {
+      margin-left: auto;
+      justify-content: flex-end;
+    }
+
+    .message-row.bot {
+      justify-content: flex-start;
+    }
+
+    .avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #fbbf24;
+      flex-shrink: 0;
+    }
+
+    .bubble {
+      padding: 8px 11px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .message-row.user .bubble {
+      background: #111827;
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-row.bot .bubble {
+      background: #f3f4ff;
+      color: #111827;
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble.thinking {
+      font-style: italic;
+      color: #6b7280;
+      background: #f3f4f6;
+    }
+
+    .chat-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    textarea {
+      flex: 1;
+      resize: none;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      padding: 10px 14px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.15);
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    .send-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #111827;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .note {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #9ca3af;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <header>
+        <div class="brand">
+          <div class="brand-logo">🐻</div>
+          <div>
+            <div class="brand-title">ONESELF 社内ヘルプAI</div>
+            <div style="font-size:11px;color:#6b7280;">
+              店舗情報・清掃ルール・トラブル対応などを素早く確認できます
+            </div>
+          </div>
+          <span class="badge">社内用（試験運用中）</span>
+        </div>
+        <div class="header-right">
+          <span class="label">社内用</span>
+          <span>回答は社内ルールを優先して最終確認してください</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <!-- 左側：説明 & チップ -->
+        <div>
+          <div class="tabs">
+            <button class="tab-btn active">
+              🏠 店舗情報
+            </button>
+            <button class="tab-btn">
+              🧹 清掃・運用ルール
+            </button>
+            <button class="tab-btn">
+              🔐 リモートロック
+            </button>
+            <button class="tab-btn">
+              😢 クレーム対応
+            </button>
+          </div>
+
+          <div class="hint-box">
+            <div class="hint-title">
+              <span>📌 ONESELF社内ヘルプAI です。</span>
+            </div>
+            <ul class="hint-list">
+              <li>店舗情報（住所 / 駐車場 / 設備）</li>
+              <li>運用ルール（清掃 / 入退室 / 予約）</li>
+              <li>トラブル対応（リモートロック / クレーム）</li>
+              <li>その他、社内ルールの確認</li>
+            </ul>
+            <div class="examples">
+              例：<br />
+              <code>沼津店の住所は？</code><br />
+              <code>沼津店の駐車場は？</code><br />
+              <code>清掃頻度を教えて</code>
+            </div>
+
+            <div class="chips">
+              <button class="chip" data-preset="沼津店の住所は？">
+                <span>📍</span>沼津店の住所
+              </button>
+              <button class="chip" data-preset="沼津店の駐車場は？">
+                <span>🚗</span>沼津店の駐車場
+              </button>
+              <button class="chip" data-preset="清掃頻度を教えて">
+                <span>🧹</span>清掃頻度
+              </button>
+              <button class="chip" data-preset="リモートロックが開かない時は？">
+                <span>🔐</span>ロックが開かない時
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：チャット -->
+        <div class="chat-card">
+          <div id="chat-log" class="chat-log">
+            <!-- JSでメッセージを追加します -->
+          </div>
+
+          <form id="chat-form" class="chat-input-row">
+            <textarea
+              id="user-input"
+              rows="1"
+              placeholder="社内業務について質問（例：清掃ルール / 駐車場 / トラブル対応 など）"
+            ></textarea>
+            <button id="send-btn" class="send-btn" type="submit">
+              送信
+            </button>
+          </form>
+
+          <div class="note">
+            ※ 予約情報・個人情報は入力しないでください。<br />
+            ※ 回答内容が規程と異なる場合は、社内ルールを優先してください。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 🔗 Cloudflare Workers のURL（自分のものに合わせてね）
+    const WORKER_ENDPOINT = "https://aged-mountain-a919.mabekento.workers.dev";
+
+    const chatLog = document.getElementById("chat-log");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    function addBubble(text, role) {
+      const row = document.createElement("div");
+      row.className = "message-row " + role;
+
+      if (role === "bot") {
+        const icon = document.createElement("div");
+        icon.className = "avatar";
+        icon.textContent = "🐻";
+        row.appendChild(icon);
+      }
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+
+      row.appendChild(bubble);
+      chatLog.appendChild(row);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // 初期メッセージ
+    addBubble(
+      "社内業務について自由に質問してください。（清掃ルール / リモートロック / MEO対応 など）",
+      "bot"
+    );
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      addBubble(text, "user");
+      input.value = "";
+      input.focus();
+
+      const thinkingRow = document.createElement("div");
+      thinkingRow.className = "message-row bot";
+      const thinkingBubble = document.createElement("div");
+      thinkingBubble.className = "bubble thinking";
+      thinkingBubble.textContent = "考え中…";
+      thinkingRow.appendChild(thinkingBubble);
+      chatLog.appendChild(thinkingRow);
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch(
+          `${WORKER_ENDPOINT}?q=${encodeURIComponent(text)}`
+        );
+        const answerText = await res.text();
+
+        thinkingRow.remove();
+        addBubble(answerText, "bot");
+      } catch (err) {
+        console.error(err);
+        thinkingRow.remove();
+        addBubble(
+          "エラーが発生しました。時間をおいて再度お試しください。",
+          "bot"
+        );
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    // チップをクリックしたらそのまま質問を投げる
+    document.querySelectorAll("[data-preset]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        input.value = chip.dataset.preset || "";
+        form.dispatchEvent(new Event("submit"));
+      });
+    });
+  </script>
+</body>
+</html>

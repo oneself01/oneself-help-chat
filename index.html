@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ONESELF ヘルプAI</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background:#f6f7f9; }
+    header { padding: 14px 16px; background: #111; color: #fff; font-weight: 700; }
+    main { max-width: 760px; margin: 0 auto; padding: 12px; }
+    .box { background:#fff; border-radius: 12px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    #log { height: 60vh; overflow:auto; padding: 8px; border: 1px solid #e6e6e6; border-radius: 10px; }
+    .msg { margin: 10px 0; line-height: 1.5; }
+    .me { font-weight: 700; }
+    .ai { font-weight: 700; }
+    form { display:flex; gap: 8px; margin-top: 10px; }
+    input { flex:1; padding: 12px; border-radius: 10px; border: 1px solid #ddd; }
+    button { padding: 12px 14px; border: 0; border-radius: 10px; background:#111; color:#fff; font-weight:700; cursor:pointer; }
+    .note { color:#666; font-size: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>ONESELF ヘルプAI</header>
+  <main>
+    <div class="box">
+      <div id="log"></div>
+
+      <form id="f">
+        <input id="q" placeholder="例：沼津店の駐車場は？ / 遅刻しそうな場合は？" autocomplete="off" />
+        <button id="send" type="submit">送信</button>
+      </form>
+
+      <div class="note">
+        ※個人情報や予約番号は入力しないでください。解決しない場合は公式LINEの「お問い合わせ」へ。
+      </div>
+    </div>
+  </main>
+
+<script>
+  // 後で Cloudflare Workers のURLに差し替えます
+  const API_URL = "https://YOUR-WORKER.your-subdomain.workers.dev/chat";
+
+  const log = document.getElementById("log");
+  const f = document.getElementById("f");
+  const q = document.getElementById("q");
+  const send = document.getElementById("send");
+
+  function add(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `<span class="${role === 'user' ? 'me' : 'ai'}">${role === 'user' ? 'あなた' : 'AI'}：</span> ${escapeHtml(text).replace(/\n/g,"<br>")}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = q.value.trim();
+    if (!text) return;
+    q.value = "";
+    add("user", text);
+
+    send.disabled = true;
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json().catch(()=> ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      add("assistant", data.answer || "すみません、回答を生成できませんでした。");
+    } catch (err) {
+      add("assistant", "エラーが発生しました。時間を置いて再度お試しください。");
+    } finally {
+      send.disabled = false;
+    }
+  });
+
+  add("assistant", "こんにちは。質問を入力してください。");
+</script>
+</body>
+</html>

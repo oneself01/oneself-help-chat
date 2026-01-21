@@ -62,12 +62,11 @@
     }
 
     .brand-logo img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
 
     .brand-title {
       font-weight: 700;
@@ -279,7 +278,6 @@
       box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.15);
     }
 
-    /* プレースホルダーを少し薄く */
     textarea::placeholder {
       color: #d1d5db;
     }
@@ -313,6 +311,28 @@
       color: #9ca3af;
       text-align: left;
     }
+
+    /* ▼ 追加：コピー用ボタン ▼ */
+    .copy-btn {
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #6b7280;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      margin-bottom: 2px;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: #f3f4ff;
+    }
+
+    .message-row.bot .copy-btn {
+      align-self: flex-start;
+    }
+    /* ▲ 追加ここまで ▲ */
   </style>
 </head>
 <body>
@@ -321,8 +341,8 @@
       <header>
         <div class="brand">
           <div class="brand-logo">
-  <img src="./kuma.png" alt="ONESELFくま" />
-</div>
+            <img src="./kuma.png" alt="ONESELFくま" />
+          </div>
 
           <div>
             <div class="brand-title">ONESELF 社内ヘルプAI</div>
@@ -418,11 +438,38 @@
         row.appendChild(icon);
       }
 
+      // 吹き出し
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.textContent = text;
 
       row.appendChild(bubble);
+
+      // ▼ 追加：botメッセージにコピー用ボタンを付ける ▼
+      if (role === "bot") {
+        const copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "copy-btn";
+        copyBtn.textContent = "コピー";
+
+        copyBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(text);
+            const original = copyBtn.textContent;
+            copyBtn.textContent = "コピーしました";
+            setTimeout(() => {
+              copyBtn.textContent = original;
+            }, 1500);
+          } catch (e) {
+            console.error(e);
+            alert("コピーに失敗しました");
+          }
+        });
+
+        row.appendChild(copyBtn);
+      }
+      // ▲ 追加ここまで ▲
+
       chatLog.appendChild(row);
       chatLog.scrollTop = chatLog.scrollHeight;
     }

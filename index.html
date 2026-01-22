@@ -312,7 +312,7 @@
       text-align: left;
     }
 
-    /* ▼ 追加：コピー用ボタン（スマホ対応） ▼ */
+    /* ▼ コピー用ボタン（スマホ対応） ▼ */
     .copy-btn {
       border: 1px solid #e5e7eb;
       background: #ffffff;
@@ -350,7 +350,32 @@
     .message-row.bot .copy-btn {
       align-self: flex-start;
     }
-    /* ▲ 追加ここまで ▲ */
+    /* ▲ コピー用ボタンここまで ▲ */
+
+    /* ▼ 定型文モードトグル ▼ */
+    .template-toggle-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+
+    .template-btn {
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      color: #4b5563;
+    }
+
+    .template-btn.active {
+      background: #111827;
+      color: #f9fafb;
+      border-color: #111827;
+    }
+    /* ▲ 定型文モードトグルここまで ▲ */
   </style>
 </head>
 <body>
@@ -417,6 +442,13 @@
         <div class="chat-card">
           <div id="chat-log" class="chat-log"></div>
 
+          <!-- 定型文モードトグル -->
+          <div class="template-toggle-row">
+            <button type="button" id="template-toggle" class="template-btn">
+              定型文モード：OFF
+            </button>
+          </div>
+
           <form id="chat-form" class="chat-input-row">
             <textarea
               id="user-input"
@@ -444,6 +476,20 @@
     const form     = document.getElementById("chat-form");
     const input    = document.getElementById("user-input");
     const sendBtn  = document.getElementById("send-btn");
+
+    // ★ 定型文モードのトグル
+    const templateToggle = document.getElementById("template-toggle");
+    let isTemplateMode = false;
+
+    if (templateToggle) {
+      templateToggle.addEventListener("click", () => {
+        isTemplateMode = !isTemplateMode;
+        templateToggle.classList.toggle("active", isTemplateMode);
+        templateToggle.textContent = isTemplateMode
+          ? "定型文モード：ON"
+          : "定型文モード：OFF";
+      });
+    }
 
     function addBubble(text, role) {
       const row = document.createElement("div");
@@ -525,9 +571,12 @@
       sendBtn.disabled = true;
 
       try {
-        const res = await fetch(
-          `${WORKER_ENDPOINT}?q=${encodeURIComponent(text)}`
-        );
+        const params = new URLSearchParams({ q: text });
+        if (isTemplateMode) {
+          params.set("mode", "template");
+        }
+
+        const res = await fetch(`${WORKER_ENDPOINT}?${params.toString()}`);
         const answerText = await res.text();
 
         thinkingRow.remove();
